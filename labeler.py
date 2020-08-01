@@ -105,7 +105,7 @@ def main():
                 pid = proc.pid
 
                 prompt = "\n\n\nClassifying %s (%d/%d)\n\n" % (img_path,
-                                                         processed, images_to_process)
+                                                            processed, images_to_process)
                 prompt += "Please choose: \n"
                 prompt += "(or choose Q/q to quit)\n\n"
                 for i, option in enumerate(classifier_options):
@@ -113,7 +113,7 @@ def main():
 
                     if prior_choice:
                         prompt += "%d: %s (%d)\n" % (i, option,
-                                                     len(prior_choice),)
+                                                    len(prior_choice),)
                     else:
                         prompt += "%d: %s\n" % (i, option,)
 
@@ -146,8 +146,6 @@ def main():
                 ))
 
                 option_index = None
-                # this is the wrong pid, need to find the pid created for preview. not by `open`
-                os.kill(proc.pid, signal.SIGKILL)
 
         if mappings:
             if not os.path.isdir(raw_subpath):
