@@ -45,7 +45,7 @@ if base and not os.path.isdir(base):
 
 raw_subpath_name = 'raw'
 
-raw_image_extensions = ['.nef', '.cr2']
+raw_image_extensions = ['.tif']
 
 FILE_CHANGE_LOG = []
 
@@ -165,12 +165,11 @@ def rename_files(mappings, rug_id):
             dst=target,
         )
 
-    allowed_extensions = ['.cr2', '.nef', '.mov']
     for p in os.listdir(rug_path):
         abspath = os.path.join(rug_path, p)
         if not os.path.isdir(abspath):
             _, ext = os.path.splitext(p.lower())
-            if ext not in allowed_extensions:
+            if ext not in raw_image_extensions:
                 FILE_CHANGE_LOG.append({
                     "operation": "delete",
                     "source": abspath,
