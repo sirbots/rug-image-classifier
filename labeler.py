@@ -164,7 +164,7 @@ def rename_files(mappings, rug_id):
 
         target_file_name = "{rug_id}_{index}-{position}".format(
             rug_id=rug_id,
-            index=str(mapping.get('index')).zfill(2),
+            index=str(mapping.get('index') + 1).zfill(2),
             position=position,
         )
 
@@ -220,7 +220,7 @@ def render_option_labels(
         ])
 
         label_text = "{index}: {option} {count}".format(
-            index=i,
+            index=i + 1,
             option=option,
             count="(%d)" % count if count else "",
         )
@@ -343,7 +343,7 @@ with temporary_png_copies() as (thumbnail_list, rug_id):
 
         try:
             max_index = len(classifier_options)
-            index = int(event.char)
+            index = int(event.char) - 1
             position = classifier_options[index]
 
             _latest_position = position
