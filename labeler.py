@@ -46,7 +46,6 @@ if base and not os.path.isdir(base):
 raw_subpath_name = 'raw'
 
 raw_image_extensions = ['.nef', '.cr2']
-movie_extensions = ['.mov']
 
 FILE_CHANGE_LOG = []
 
@@ -166,40 +165,6 @@ def rename_files(mappings, rug_id):
             dst=target,
         )
 
-    video_paths = [p for p in os.listdir(
-        rug_path) if p.lower().endswith('.mov')]
-    for i, video_path in enumerate(video_paths):
-        index = len(mappings) + i
-        video_target_name = "{rug_id}-{index}-{position}.mov".format(
-            rug_id=rug_id,
-            index=index,
-            position='Video',
-        )
-
-        video_source = os.path.join(rug_path, video_path)
-        video_target_path = os.path.join(rug_path, video_target_name)
-        raw_video_target_path = os.path.join(raw_subpath, video_target_name)
-
-        FILE_CHANGE_LOG.append({
-            "operation": "rename",
-            "source": video_source,
-            "target": video_target_path,
-        })
-        os.rename(
-            src=video_source,
-            dst=video_target_path,
-        )
-
-        FILE_CHANGE_LOG.append({
-            "operation": "copy",
-            "source": video_target_path,
-            "target": raw_video_target_path,
-        })
-        shutil.copyfile(
-            src=video_target_path,
-            dst=raw_video_target_path,
-        )
-
     allowed_extensions = ['.cr2', '.nef', '.mov']
     for p in os.listdir(rug_path):
         abspath = os.path.join(rug_path, p)
@@ -212,9 +177,6 @@ def rename_files(mappings, rug_id):
                     "target": None,
                 })
                 os.remove(abspath)
-
-    return
-    photos, videos = partition(mappings)
 
     for position, images in photos.items():
         for same_position_counter, (p, i, base) in enumerate(images):
@@ -231,27 +193,6 @@ def rename_files(mappings, rug_id):
             os.rename(
                 src=p,
                 dst=working_copy_target,
-            )
-
-    video_counter = len(photos) - 1
-    for position, video_list in videos.items():
-        for (p, _, base) in video_list:
-
-            i = video_counter
-            i += 1
-
-            _, ext = os.path.splitext(base)
-            pretty = "%s-Video_%d%s" % (rug_path, i, ext,)
-            working_copy_target = os.path.join(path, pretty)
-
-            os.rename(
-                src=p,
-                dst=working_copy_target,
-            )
-
-            shutil.copyfile(
-                src=working_copy_target,
-                dst=os.path.join(raw_subpath, pretty)
             )
 
     for p in paths_to_delete:
