@@ -62,8 +62,6 @@ def _dump_logs(rug):
         print("WARNING: failed to write logs, error was:")
         print(e)
 
-
-
 # how can this be converted to jpeg?
 @contextmanager
 def temporary_png_copies():
@@ -93,6 +91,21 @@ def temporary_png_copies():
         sips_commands = []
         for p in image_map.values():
             name, extension = os.path.splitext(p.lower())
+
+            # remove whitespace from image names
+            if " " in name:
+                name = name.replace(' ', '_')
+                escaped = os.path.join(tif_image_base, name) + extension
+                os.rename(p, escaped)
+                
+                FILE_CHANGE_LOG.append({
+                  "operation": "rename",
+                  "source": p,
+                  "target": escaped  
+                })
+
+                p = escaped
+
             if extension in raw_image_extensions:
                 cmd = 'sips -Z 600 -s format png -s formatOptions 20 {original_path} --out {target_dir}'.format(
                     original_path=p,
@@ -120,13 +133,7 @@ def temporary_png_copies():
                 name=name,
             )
 
-        successfully_replaced = [
-            v
-            for v in image_map.values()
-            if type(v) != str
-            ]
-
-        yield successfully_replaced, rugs[0]
+        yield list(image_map.values()), rugs[0]
 
 
 def rename_files(mappings, rug_id):
@@ -143,9 +150,9 @@ def rename_files(mappings, rug_id):
         position = mapping.get('position')
         counter[position] += 1
 
-        target_file_name = "{rug_id}-{index}-{position}".format(
+        target_file_name = "{rug_id}_{index}-{position}".format(
             rug_id=rug_id,
-            index=mapping.get('index'),
+            index=str(mapping.get('index')).zfill(2),
             position=position,
         )
 
@@ -166,25 +173,7 @@ def rename_files(mappings, rug_id):
             src=source,
             dst=target,
         )
-        # also need to generate jpegs
-    print(mappings)
-    for position, images in mappings.items():
-        for same_position_counter, (p, i, base) in enumerate(images):
-            _, ext = os.path.splitext(base)
-
-            same_position_label = ""
-            if same_position_counter > 0:
-                same_position_label = "(copy_%d)" % same_position_counter
-
-            pretty = "%s-%s_%s%s%s" % (rug_path, str(i), position,
-                                       same_position_label, ext,)
-            working_copy_target = os.path.join(path, pretty)
-
-            os.rename(
-                src=p,
-                dst=working_copy_target,
-            )
-
+       
 classifier_options = [
     'Over',
     'Angle',
