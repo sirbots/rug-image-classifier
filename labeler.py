@@ -43,9 +43,8 @@ if base and not os.path.isdir(base):
 
 
 
-raw_subpath_name = 'raw'
-
 raw_image_extensions = ['.tif']
+tif_subdirectory_name = 'TIF'
 
 FILE_CHANGE_LOG = []
 
@@ -63,11 +62,13 @@ def _dump_logs(rug):
         print("WARNING: failed to write logs, error was:")
         print(e)
 
+
+
+# how can this be converted to jpeg?
 @contextmanager
 def temporary_png_copies():
     global base
     global raw_image_extensions
-    global raw_subpath_name
 
     directories = os.listdir(base)
     rugs = [p for p in directories if not p.startswith('.')]
@@ -75,12 +76,9 @@ def temporary_png_copies():
     assert len(rugs) == 1, 'You may only work on one rug at a time'
 
     rug_base = os.path.join(base, rugs[0])
-    img_paths = [os.path.join(rug_base, p) for p in os.listdir(rug_base)]
+    tif_image_base = os.path.join(rug_base, tif_subdirectory_name)
 
-    if raw_subpath_name in os.listdir(rug_base):
-        print("WARNING: looks like there is already a '%s' directory for this rug - canceling" %
-              raw_subpath_name)
-        sys.exit(1)
+    img_paths = [os.path.join(tif_image_base, p) for p in os.listdir(tif_image_base)]
 
     with tempfile.TemporaryDirectory() as tmpdir:
         image_map = {}
@@ -90,7 +88,7 @@ def temporary_png_copies():
                 name, extension = os.path.splitext(p.lower())
                 if extension in raw_image_extensions:
                     image_map[os.path.split(
-                        name)[-1]] = os.path.join(rug_base, p)
+                        name)[-1]] = os.path.join(tif_image_base, p)
 
         sips_commands = []
         for p in image_map.values():
@@ -122,19 +120,23 @@ def temporary_png_copies():
                 name=name,
             )
 
-        yield list(image_map.values()), rugs[0]
+        successfully_replaced = [
+            v
+            for v in image_map.values()
+            if type(v) != str
+            ]
+
+        yield successfully_replaced, rugs[0]
 
 
 def rename_files(mappings, rug_id):
     global base
-    global raw_subpath_name
+    global tif_subdirectory_name
 
     rug_path = os.path.join(base, rug_id)
-    raw_subpath = os.path.join(rug_path, raw_subpath_name)
+    tif_subpath = os.path.join(rug_path, tif_subdirectory_name)
 
-    rug_file_paths = os.listdir(rug_path)
-
-    os.mkdir(raw_subpath)
+    rug_file_paths = os.listdir(tif_subpath)
 
     counter = defaultdict(lambda: 0)
     for mapping in mappings:
@@ -154,7 +156,7 @@ def rename_files(mappings, rug_id):
         target_file_name += mapping.get('extension')
 
         source = mapping.get('original')
-        target = os.path.join(raw_subpath, target_file_name)
+        target = os.path.join(tif_subpath, target_file_name)
         FILE_CHANGE_LOG.append({
             "operation": "rename",
             "source": source,
@@ -164,20 +166,9 @@ def rename_files(mappings, rug_id):
             src=source,
             dst=target,
         )
-
-    for p in os.listdir(rug_path):
-        abspath = os.path.join(rug_path, p)
-        if not os.path.isdir(abspath):
-            _, ext = os.path.splitext(p.lower())
-            if ext not in raw_image_extensions:
-                FILE_CHANGE_LOG.append({
-                    "operation": "delete",
-                    "source": abspath,
-                    "target": None,
-                })
-                os.remove(abspath)
-
-    for position, images in photos.items():
+        # also need to generate jpegs
+    print(mappings)
+    for position, images in mappings.items():
         for same_position_counter, (p, i, base) in enumerate(images):
             _, ext = os.path.splitext(base)
 
@@ -193,12 +184,6 @@ def rename_files(mappings, rug_id):
                 src=p,
                 dst=working_copy_target,
             )
-
-    for p in paths_to_delete:
-        full_path = os.path.join(path, p)
-        print("deleting file %s" % full_path)
-        os.remove(full_path)
-
 
 classifier_options = [
     'Over',
@@ -353,11 +338,6 @@ with temporary_png_copies() as (thumbnail_list, rug_id):
 
         except (IndexError, ValueError):
             print("You must choose a number between 0 and %d" % max_index)
-
-        # render_next_thumbnail()
-        # img2 = PhotoImage(file='buttons.png')
-        # label.configure(image=img2)
-        # label.image = img2
 
     window.bind("<Key>", handle_key_press)
     window.bind("<Return>", handle_enter_press)
