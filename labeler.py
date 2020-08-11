@@ -85,33 +85,40 @@ def temporary_png_copies():
             if not p.startswith('.'):
                 name, extension = os.path.splitext(p.lower())
                 if extension in raw_image_extensions:
+                    # SIPS cannot accept paths with spaces
+                    escaped = p
+                    if " " in name:
+                        name = name.replace(' ', '_')
+                        
+                        escaped = os.path.join(tif_image_base, name) + extension
+                        
+                        FILE_CHANGE_LOG.append({
+                            "operation": "rename",
+                            "source": p,
+                            "target": escaped  
+                        })
+                        os.rename(p, escaped)
+
                     image_map[os.path.split(
-                        name)[-1]] = os.path.join(tif_image_base, p)
+                        name)[-1]] = os.path.join(tif_image_base, escaped)
 
         sips_commands = []
+
         for p in image_map.values():
             name, extension = os.path.splitext(p.lower())
-
-            # remove whitespace from image names
-            if " " in name:
-                name = name.replace(' ', '_')
-                escaped = os.path.join(tif_image_base, name) + extension
-                os.rename(p, escaped)
-                
-                FILE_CHANGE_LOG.append({
-                  "operation": "rename",
-                  "source": p,
-                  "target": escaped  
-                })
-
-                p = escaped
-
             if extension in raw_image_extensions:
-                cmd = 'sips -Z 600 -s format png -s formatOptions 20 {original_path} --out {target_dir}'.format(
+                generate_png_command = 'sips -Z 600 -s format png -s formatOptions 20 {original_path} --out {target_dir}'.format(
                     original_path=p,
                     target_dir=str(tmpdir),
                 )
-                sips_commands.append(cmd)
+
+                generate_jpg_command = 'sips -s format jpeg {original_path} --out {target_dir}'.format(
+                    original_path=p,
+                    target_dir=str(tmpdir),
+                )
+
+                sips_commands.append(generate_png_command)
+                sips_commands.append(generate_jpg_command)
 
         print("beginning generating thumbnails (can take up to 30 seconds)")
         procs = [subprocess.Popen(
@@ -127,11 +134,16 @@ def temporary_png_copies():
 
         for p in os.listdir(tmpdir):
             name, extension = os.path.splitext(p.lower())
-            image_map[name] = dict(
-                original=image_map.get(name),
-                thumbnail=os.path.join(tmpdir, p),
-                name=name,
-            )
+            
+            if extension != '.jpg':
+                thumbnail_path = os.path.join(tmpdir, p)
+                jpeg_path = thumbnail_path.replace(extension, '.jpg')
+                image_map[name] = dict(
+                    original=image_map.get(name),
+                    thumbnail=thumbnail_path,
+                    jpeg=jpeg_path,
+                    name=name,
+                )
 
         yield list(image_map.values()), rugs[0]
 
@@ -160,8 +172,9 @@ def rename_files(mappings, rug_id):
         if count > 1:
             target_file_name += '(copy_%d)' % (count - 1)
 
+        jpeg_target_path = os.path.join(rug_path, target_file_name + '.jpg')
         target_file_name += mapping.get('extension')
-
+        
         source = mapping.get('original')
         target = os.path.join(tif_subpath, target_file_name)
         FILE_CHANGE_LOG.append({
@@ -173,7 +186,18 @@ def rename_files(mappings, rug_id):
             src=source,
             dst=target,
         )
-       
+
+        FILE_CHANGE_LOG.append({
+            "operation": "create",
+            "source": None,
+            "target": jpeg_target_path,
+        })
+        os.rename(
+            src=mapping.get("jpeg"),
+            dst=jpeg_target_path,
+        )
+
+
 classifier_options = [
     'Over',
     'Angle',
