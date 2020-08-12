@@ -20,7 +20,34 @@ from collections import defaultdict
 import shutil
 import csv
 
+
+def get_ai_classifier():
+    global classifier_model_path
+    
+    try:
+        from fastai2.vision.all import load_learner
+        
+        learner = load_learner(classifier_model_path)
+
+        def classify(image_path):
+            return learner.predict(image_path)[0]
+        
+        return classify
+
+    except Exception as e:
+        print(e)
+        print("WARNING: Failed at loading AI system")
+        print("falling back to manual classification with no hints")
+        
+        return lambda image_path: None
+
+
 base = os.environ.get('BASE')
+classifier_ai_model_file_name = "rug-classifier-model.pkl"
+classifier_model_path = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)),
+    classifier_ai_model_file_name,
+)
 
 if not base:
     print("WARNING: Run the script like this:")
@@ -41,7 +68,7 @@ if base and not os.path.isdir(base):
     print()
     sys.exit(1)
 
-
+classify = get_ai_classifier()
 
 raw_image_extensions = ['.tif']
 tif_subdirectory_name = 'TIF'
@@ -143,6 +170,7 @@ def temporary_png_copies():
                     thumbnail=thumbnail_path,
                     jpeg=jpeg_path,
                     name=name,
+                    predicted_position=classify(jpeg_path),
                 )
 
         yield list(image_map.values()), rugs[0]
@@ -272,6 +300,11 @@ with temporary_png_copies() as (thumbnail_list, rug_id):
                 options=classifier_options,
             )
 
+            if _current_image.get("predicted_position"):
+                _latest_position = _current_image.get("predicted_position")
+                _highlight(_latest_position)
+
+
         except StopIteration:
             _current_image = None
             _latest_position = None
@@ -384,5 +417,9 @@ with temporary_png_copies() as (thumbnail_list, rug_id):
         classified=[],
         options=option_labels,
     )
+
+    if _current_image.get("predicted_position"):
+        _latest_position = _current_image.get("predicted_position")
+        _highlight(_latest_position)
 
     window.mainloop()
