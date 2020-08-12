@@ -32,12 +32,14 @@ def get_ai_classifier():
         def classify(image_path):
             return learner.predict(image_path)[0]
         
+        print("Successfully loaded AI classifier for labeling hints")
         return classify
 
     except Exception as e:
-        print(e)
         print("WARNING: Failed at loading AI system")
         print("falling back to manual classification with no hints")
+        print("error was:")
+        print(e)
         
         return lambda image_path: None
 
