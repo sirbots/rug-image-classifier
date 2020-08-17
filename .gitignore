@@ -3,3 +3,5 @@
 .DS_Store/*
 data/
 classify/
+.DSC_0971*
+*files_change_log.csv
