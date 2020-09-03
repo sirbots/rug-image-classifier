@@ -181,6 +181,7 @@ def temporary_png_copies():
 def rename_files(mappings, rug_id):
     global base
     global tif_subdirectory_name
+    global classifier_options
 
     rug_path = os.path.join(base, rug_id)
     tif_subpath = os.path.join(rug_path, tif_subdirectory_name)
@@ -190,11 +191,12 @@ def rename_files(mappings, rug_id):
     counter = defaultdict(lambda: 0)
     for mapping in mappings:
         position = mapping.get('position')
+        index = classifier_options.index(position)
         counter[position] += 1
 
         target_file_name = "{rug_id}_{index}-{position}".format(
             rug_id=rug_id,
-            index=str(mapping.get('index') + 1).zfill(2),
+            index=str(index + 1).zfill(2),
             position=position,
         )
 
@@ -285,8 +287,6 @@ with temporary_png_copies() as (thumbnail_list, rug_id):
         global classifier_options
 
         try:
-            _current_image['index'] = len(classified_images)
-
             _, extension = os.path.splitext(_current_image.get('original'))
             _current_image['extension'] = extension
 
