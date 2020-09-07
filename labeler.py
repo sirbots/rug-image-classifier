@@ -25,7 +25,7 @@ def get_ai_classifier():
     global classifier_model_path
     
     try:
-        from fastai2.vision.all import load_learner
+        from fastai.vision.all import load_learner
         
         learner = load_learner(classifier_model_path)
 
